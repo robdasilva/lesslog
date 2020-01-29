@@ -5,15 +5,12 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && prettier --write index.d.ts index.js",
     "lint": "eslint . --ext .js,.ts --ignore-path .gitignore",
-    "prepublish": "npm run build",
-    "prepublishOnly": "npm run lint && npm run test",
-    "test": "jest",
+    "prepare": "npm run lint && npm run test && npm run build",
     "preversion": "npm run lint && npm run test",
-    "version": "prettier --write index.d.ts index.js && git add index.d.ts index.js",
     "postversion": "git push && git push --tags",
-    "watch": "tsc -w"
+    "test": "jest"
   },
   "repository": {
     "type": "git",

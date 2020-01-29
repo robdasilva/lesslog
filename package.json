@@ -4,6 +4,13 @@
   "description": "Zero-dependency, teeny-tiny and serverless-ready logging utility for Node.js.",
   "main": "index.js",
   "types": "index.d.ts",
+  "files": [
+    "index.d.ts",
+    "index.js",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc && prettier --write index.d.ts index.js",
     "lint": "eslint . --ext .js,.ts --ignore-path .gitignore",

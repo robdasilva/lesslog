@@ -1,12 +1,10 @@
 # lesslog
 
-**_Logging for the serverless age_**
-
-Zero-dependency, teeny-tiny and serverless-ready logging utility for Node.js.
+**_Zero-dependency, teeny-tiny and serverless-ready logging utility for Node.js._**
 
 In most serverless environments log ingestion comes at a cost. And more often than not, those logs are not even looked at for most of the times. Until something goes bad and crucial debugging information is not available, as it was filtered to save on log ingestions.
 
-Using `lesslog` debug information is not logged immediately, but buffered internally. Once an error is logged any buffered logs will be emitted, preserving their original timestamp and context. No debug information is lost, while still maintaining clutter-free logs the rest of the time.
+Using `lesslog`, debug information is not logged immediately, but buffered internally. Once an error is logged any buffered logs will be emitted, preserving their original timestamp and context. No debug information is lost, while still maintaining clutter-free logs the rest of the time.
 
 ## AWS Lambda & CloudWatch
 

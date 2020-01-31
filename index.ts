@@ -7,12 +7,16 @@ enum LogLevel {
   ERROR,
 }
 
+interface ILogContext {
+  [key: string]: any
+}
+
 interface ILogFormatFunction {
   (timestamp: number, label: string, message: string, context?: any): string
 }
 
 interface ILogFunction {
-  (message: string, context?: any): void
+  (message: string, context?: ILogContext): void
 }
 
 const logStream = new PassThrough()
@@ -42,7 +46,7 @@ function log(
   level: LogLevel | string,
   format: ILogFormatFunction = formatLog
 ): ILogFunction {
-  return (message: string, context?: any) => {
+  return (message: string, context?: ILogContext) => {
     const label = typeof level === 'string' ? level : LogLevel[level]
     const entry = `${format(Date.now(), label, message, context)}\n`
 

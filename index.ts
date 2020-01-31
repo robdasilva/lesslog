@@ -47,6 +47,10 @@ function log(
   format: ILogFormatFunction = formatLog
 ): ILogFunction {
   return (message: string, context?: ILogContext) => {
+    if (typeof message !== 'string') {
+      throw new TypeError('Expected `message` to be a string')
+    }
+
     const label = typeof level === 'string' ? level : LogLevel[level]
     const entry = `${format(Date.now(), label, message, context)}\n`
 

@@ -59,6 +59,20 @@ describe('lesslog', () => {
     expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`)
   })
 
+  it('throws type error if `message` is not a string', () => {
+    const label = 'MONITORING'
+    const monitor = log(label)
+    const message = (Symbol('message') as any) as string
+
+    expect(() => monitor(message)).toThrowErrorMatchingInlineSnapshot(
+      `"Expected \`message\` to be a string"`
+    )
+
+    expect(process.stderr.write).not.toHaveBeenCalled()
+
+    expect(process.stdout.write).not.toHaveBeenCalled()
+  })
+
   describe('clear', () => {
     it('returns any debug logs clearing them from the buffer', () => {
       const label = 'DEBUG'

@@ -11,13 +11,27 @@ interface ILogContext {
   [key: string]: any
 }
 
+interface ILogDefaults {
+  context: ILogContext
+}
+
+interface ILogFormatInput {
+  context?: ILogContext
+  defaults: ILogDefaults
+  label: string
+  message: string
+  timestamp: number
+}
+
 interface ILogFormatFunction {
-  (timestamp: number, label: string, message: string, context?: any): string
+  (input: ILogFormatInput): string
 }
 
 interface ILogFunction {
   (message: string, context?: ILogContext): void
 }
+
+const defaults: ILogDefaults = { context: {} }
 
 const logStream = new PassThrough()
 
@@ -31,14 +45,20 @@ function clearLog() {
   }
 }
 
-function formatLog(
-  timestamp: number,
-  label: string,
-  message: string,
-  context?: any
-) {
+function formatLog({
+  context,
+  defaults: { context: defaultContext },
+  label,
+  message,
+  timestamp,
+}: ILogFormatInput) {
   return [new Date(timestamp).toISOString(), label, message.trim()]
-    .concat(context ? JSON.stringify(context) : [])
+    .filter(item => !!item)
+    .concat(
+      context || Object.keys(defaultContext).length
+        ? JSON.stringify({ ...defaultContext, ...context })
+        : []
+    )
     .join('\t')
 }
 
@@ -51,8 +71,10 @@ function log(
       throw new TypeError('Expected `message` to be a string')
     }
 
-    const label = typeof level === 'string' ? level : LogLevel[level]
-    const entry = `${format(Date.now(), label, message, context)}\n`
+    const label = typeof level === 'string' ? level.trim() : LogLevel[level]
+    const entry =
+      format({ context, defaults, label, message, timestamp: Date.now() }) +
+      '\n'
 
     switch (level) {
       case LogLevel.ERROR:
@@ -86,5 +108,17 @@ log.debug = log(LogLevel.DEBUG)
 log.info = log(LogLevel.INFO)
 log.warn = log(LogLevel.WARN)
 log.error = log(LogLevel.ERROR)
+
+log.reset = () => {
+  defaults.context = {}
+}
+
+log.set = (name: string, value: string | number | boolean | null) => {
+  defaults.context[name] = value
+}
+
+log.unset = (name: string) => {
+  delete defaults.context[name]
+}
 
 export = log

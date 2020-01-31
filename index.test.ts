@@ -22,15 +22,16 @@ describe('lesslog', () => {
     ;(process.stdout.write as jest.Mock).mockClear()
 
     log.clear()
+    log.reset()
   })
 
   it('creates a custom logging function for a given log level', () => {
-    const label = 'MONITORING'
-    const monitor = log(label)
-    const message = 'Random log message for monitoring'
+    const label = 'TEST'
+    const custom = log(label)
+    const message = 'Random log message'
     const context = { key: 'value' }
 
-    expect(monitor(message, context)).toBeUndefined()
+    expect(custom(message, context)).toBeUndefined()
 
     expect(process.stderr.write).not.toHaveBeenCalled()
 
@@ -41,22 +42,50 @@ describe('lesslog', () => {
   })
 
   it('creates a custom logging function with custom formatting', () => {
-    const label = 'MONITORING'
-    const string = 'Random formatted log message for monitoring'
+    const label = 'TEST'
+    const string = 'Formatted log message'
     const format = jest.fn(() => string)
     const monitor = log(label, format)
-    const message = 'Random log message for monitoring'
+    const message = 'Random log message'
     const context = { key: 'value' }
 
     expect(monitor(message, context)).toBeUndefined()
 
     expect(format).toHaveBeenCalledTimes(1)
-    expect(format).toHaveBeenCalledWith(timestamp, label, message, context)
+    expect(format).toHaveBeenCalledWith({
+      context,
+      defaults: { context: {} },
+      label,
+      message,
+      timestamp,
+    })
 
     expect(process.stderr.write).not.toHaveBeenCalled()
 
     expect(process.stdout.write).toHaveBeenCalledTimes(1)
     expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`)
+  })
+
+  it('merges log context and default context if specified', () => {
+    const label = 'TEST'
+    const custom = log(label)
+    const message = 'Random log message'
+    const context = { key: 'value' }
+
+    const additionalInformation = 42
+    log.set('additionalInformation', additionalInformation)
+
+    expect(custom(message, context)).toBeUndefined()
+
+    expect(process.stderr.write).not.toHaveBeenCalled()
+
+    expect(process.stdout.write).toHaveBeenCalledTimes(1)
+    expect(process.stdout.write).toHaveBeenCalledWith(
+      `${datetime}\t${label}\t${message}\t${JSON.stringify({
+        additionalInformation,
+        ...context,
+      })}\n`
+    )
   })
 
   it('throws type error if `message` is not a string', () => {
@@ -80,6 +109,7 @@ describe('lesslog', () => {
 
       log.debug(messages[0])
       log.debug(messages[1])
+
       expect(log.clear()).toStrictEqual(
         Buffer.from(
           `${datetime}\t${label}\t${messages[0]}\n` +
@@ -211,6 +241,90 @@ describe('lesslog', () => {
       expect(process.stderr.write).toHaveBeenCalledWith(
         `${datetime}\t${labels[2]}\t${messages[2]}\n`
       )
+    })
+  })
+
+  describe('set', () => {
+    it('adds a value to the default log context', () => {
+      const label = 'TEST'
+      const string = 'Formatted log entry'
+      const format = jest.fn(() => string)
+      const custom = log(label, format)
+      const message = 'Random log message'
+
+      const additionalInformation = 42
+      log.set('additionalInformation', additionalInformation)
+
+      expect(custom(message)).toBeUndefined()
+
+      expect(format).toHaveBeenCalledTimes(1)
+      expect(format).toHaveBeenCalledWith({
+        defaults: { context: { additionalInformation } },
+        label,
+        message,
+        timestamp,
+      })
+
+      expect(process.stderr.write).not.toHaveBeenCalled()
+
+      expect(process.stdout.write).toHaveBeenCalledTimes(1)
+      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`)
+    })
+  })
+
+  describe('unset', () => {
+    it('removes a value from the default log context', () => {
+      const label = 'TEST'
+      const string = 'Formatted log entry'
+      const format = jest.fn(() => string)
+      const custom = log(label, format)
+      const message = 'Random log message'
+
+      log.set('additionalInformation', 42)
+      log.unset('additionalInformation')
+
+      expect(custom(message)).toBeUndefined()
+
+      expect(format).toHaveBeenCalledTimes(1)
+      expect(format).toHaveBeenCalledWith({
+        defaults: { context: {} },
+        label,
+        message,
+        timestamp,
+      })
+
+      expect(process.stderr.write).not.toHaveBeenCalled()
+
+      expect(process.stdout.write).toHaveBeenCalledTimes(1)
+      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`)
+    })
+  })
+
+  describe('reset', () => {
+    it('removes any previously default context', () => {
+      const label = 'TEST'
+      const string = 'Formatted log entry'
+      const format = jest.fn(() => string)
+      const custom = log(label, format)
+      const message = 'Random log message'
+
+      log.set('additionalInformation', 42)
+      log.reset()
+
+      expect(custom(message)).toBeUndefined()
+
+      expect(format).toHaveBeenCalledTimes(1)
+      expect(format).toHaveBeenCalledWith({
+        defaults: { context: {} },
+        label,
+        message,
+        timestamp,
+      })
+
+      expect(process.stderr.write).not.toHaveBeenCalled()
+
+      expect(process.stdout.write).toHaveBeenCalledTimes(1)
+      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`)
     })
   })
 })

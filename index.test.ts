@@ -66,6 +66,24 @@ describe('lesslog', () => {
     expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`)
   })
 
+  it('adds a custom tag to the log message if specified', () => {
+    const label = 'TEST'
+    const custom = log(label)
+    const message = 'Random log message'
+
+    const tag = '45bab467-087c-426c-be7b-a2a1ce1f3f05'
+    log.tag(tag)
+
+    expect(custom(message)).toBeUndefined()
+
+    expect(process.stderr.write).not.toHaveBeenCalled()
+
+    expect(process.stdout.write).toHaveBeenCalledTimes(1)
+    expect(process.stdout.write).toHaveBeenCalledWith(
+      `${datetime}\t${tag}\t${label}\t${message}\n`
+    )
+  })
+
   it('merges log context and default context if specified', () => {
     const label = 'TEST'
     const custom = log(label)
@@ -244,6 +262,70 @@ describe('lesslog', () => {
     })
   })
 
+  describe('tag', () => {
+    it('sets a tag to be added to any log messages', () => {
+      const label = 'TEST'
+      const string = 'Formatted log entry'
+      const format = jest.fn(() => string)
+      const custom = log(label, format)
+      const message = 'Random log message'
+
+      const tag = '42e65f33-9eae-40ae-90c1-904a2050979f'
+      log.tag(tag)
+
+      expect(custom(message)).toBeUndefined()
+
+      expect(format).toHaveBeenCalledTimes(1)
+      expect(format).toHaveBeenCalledWith({
+        defaults: { context: {}, tag },
+        label,
+        message,
+        timestamp,
+      })
+
+      expect(process.stderr.write).not.toHaveBeenCalled()
+
+      expect(process.stdout.write).toHaveBeenCalledTimes(1)
+      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`)
+    })
+
+    it('throws type error if `message` is not a string', () => {
+      const tag = (Symbol('tag') as any) as string
+
+      expect(() => log.tag(tag)).toThrowErrorMatchingInlineSnapshot(
+        `"Expected \`tag\` to be a string"`
+      )
+    })
+  })
+
+  describe('untag', () => {
+    it('unsets a previously set tag to be added to any log messages', () => {
+      const label = 'TEST'
+      const string = 'Formatted log entry'
+      const format = jest.fn(() => string)
+      const custom = log(label, format)
+      const message = 'Random log message'
+
+      log.tag('73f427cc-bb2f-4ee3-a662-afdbcaaa25b2')
+      log.untag()
+
+      expect(custom(message)).toBeUndefined()
+
+      expect(format).toHaveBeenCalledTimes(1)
+      expect(format).toHaveBeenCalledWith({
+        defaults: { context: {} },
+        label,
+        message,
+        timestamp,
+      })
+
+      expect(process.stderr.write).not.toHaveBeenCalled()
+
+      expect(process.stdout.write).toHaveBeenCalledTimes(1)
+      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`)
+    })
+  })
+
   describe('set', () => {
     it('adds a value to the default log context', () => {
       const label = 'TEST'
@@ -301,7 +383,7 @@ describe('lesslog', () => {
   })
 
   describe('reset', () => {
-    it('removes any previously default context', () => {
+    it('removes any previously set tag and default context', () => {
       const label = 'TEST'
       const string = 'Formatted log entry'
       const format = jest.fn(() => string)
@@ -309,6 +391,7 @@ describe('lesslog', () => {
       const message = 'Random log message'
 
       log.set('additionalInformation', 42)
+      log.tag('caa11abc-504d-404b-a518-ec23de4eea08')
       log.reset()
 
       expect(custom(message)).toBeUndefined()

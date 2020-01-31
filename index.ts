@@ -13,6 +13,7 @@ interface ILogContext {
 
 interface ILogDefaults {
   context: ILogContext
+  tag?: string
 }
 
 interface ILogFormatInput {
@@ -47,12 +48,12 @@ function clearLog() {
 
 function formatLog({
   context,
-  defaults: { context: defaultContext },
+  defaults: { context: defaultContext, tag },
   label,
   message,
   timestamp,
 }: ILogFormatInput) {
-  return [new Date(timestamp).toISOString(), label, message.trim()]
+  return [new Date(timestamp).toISOString(), tag, label, message.trim()]
     .filter(item => !!item)
     .concat(
       context || Object.keys(defaultContext).length
@@ -111,14 +112,27 @@ log.error = log(LogLevel.ERROR)
 
 log.reset = () => {
   defaults.context = {}
+  log.untag()
 }
 
 log.set = (name: string, value: string | number | boolean | null) => {
   defaults.context[name] = value
 }
 
+log.tag = (tag: string) => {
+  if (typeof tag !== 'string') {
+    throw new TypeError('Expected `tag` to be a string')
+  }
+
+  defaults.tag = tag.trim()
+}
+
 log.unset = (name: string) => {
   delete defaults.context[name]
+}
+
+log.untag = () => {
+  delete defaults.tag
 }
 
 export = log

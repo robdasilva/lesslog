@@ -8,7 +8,7 @@ Using `lesslog`, debug information is not logged immediately, but buffered inter
 
 ## AWS Lambda & CloudWatch
 
-`lesslog` was created with AWS Lambda in mind and its default log formatting is optimized for Amazon CloudWatch. As Lambda functions are reused as much as possible, `clear` must be called at the end of each Lambda execution to prevent the internal buffers to bloat and carry over log messages from previous executions.
+`lesslog` was created with AWS Lambda in mind and its default logging format is optimized for Amazon CloudWatch. As Lambda functions are reused as much as possible, `clear` must be called at the end of each Lambda execution to prevent the internal buffers to bloat and carry over log messages from previous executions. To resemble Lambda's default log message format, `tag` must be used at the very beginning of each execution, to add the `awsRequestId` to the logs.
 
 ## Installation
 
@@ -19,7 +19,9 @@ $ npm install lesslog
 ## Usage
 
 ```javascript
-import { debug, info, warn, error, clear } from 'lesslog'
+import { clear, debug, info, warn, error, tag } from 'lesslog'
+
+tag('70e505ba-ad84-4816-82ec-f2a1ed4303ca')
 
 debug('Debug message', { with: 'additional', information: true })
 info('Uncritical exceptional information', ['maybe', 'an', 'array', '?'])
@@ -33,10 +35,10 @@ clear()
 Running the above code, will result in the following log messages:
 
 ```shell
-2038-01-19T03:14:07.998Z  INFO  Uncritical exceptional information ["maybe","an","array","?"]
-2038-01-19T03:14:07.999Z  WARN  Potentially critical warning {"tokenExpired":true,"user":{"id":42}}
-2038-01-19T03:14:07.997Z  DEBUG  Debug message {"with":"additional","information":true}
-2038-01-19T03:14:08.000Z  ERROR  ‾\_(ツ)_/‾ {"error":{"message":"Original error message"},"user":{"id":42}}
+2038-01-19T03:14:07.998Z  70e505ba-ad84-4816-82ec-f2a1ed4303ca  INFO  Uncritical exceptional information ["maybe","an","array","?"]
+2038-01-19T03:14:07.999Z  70e505ba-ad84-4816-82ec-f2a1ed4303ca  WARN  Potentially critical warning {"tokenExpired":true,"user":{"id":42}}
+2038-01-19T03:14:07.997Z  70e505ba-ad84-4816-82ec-f2a1ed4303ca  DEBUG  Debug message {"with":"additional","information":true}
+2038-01-19T03:14:08.000Z  70e505ba-ad84-4816-82ec-f2a1ed4303ca  ERROR  ‾\_(ツ)_/‾ {"error":{"message":"Original error message"},"user":{"id":42}}
 ```
 
 _Note the last debug log is not emitted as `error` is not called afterwards._
@@ -67,6 +69,28 @@ Writes a log message to `process.env.stderr`.
 
 Writes a log message to `process.env.stderr` **after** triggering any internally buffered logs to be written to `process.env.stdout`.
 
+#### `tag(tag: string) => void`
+
+Adds a given tag to all subsequent log messages.
+
+#### `untag() => void`
+
+Removes a previously set tag and stops adding it to subsequent log messages.
+
+#### `set(name: string, value: string | number | boolean | null) => void`
+
+Sets a given name-value pair on the default context to be logged with every log message.
+
+The default context and individual log context will be merged together with defaults being overwritten by values in the individual `context` argument.
+
+#### `unset(name: string) => void`
+
+Removes a name-value pair from the default context by given name.
+
+#### `reset() => void`
+
+Clears the entire default context and removes any previously set tag.
+
 ### Advanced Usage
 
 ```javascript
@@ -81,13 +105,15 @@ function format(timestamp, label, message, context) {
 
 const logMetrics = log(label, format)
 
+log.tag('14968fcb-6481-46d8-a068-b97d4be47852')
+
 logMetrics('DBQueryMetrics', [42, 0.618, 'readreplica'])
 ```
 
 Running the above code, will result in the following log messages:
 
 ```shell
-2038-01-19T03:14:08.000Z  MONITORING  DBQueryMetrics|42|0.618|readreplica
+2038-01-19T03:14:08.000Z  14968fcb-6481-46d8-a068-b97d4be47852  MONITORING  DBQueryMetrics|42|0.618|readreplica
 ```
 
 #### `log(label: string, format?: Function) => (message: string, context?: any)`

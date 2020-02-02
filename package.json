@@ -25,6 +25,7 @@
   },
   "keywords": [
     "aws",
+    "cloudwatch",
     "debug",
     "debugger",
     "lambda",

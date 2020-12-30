@@ -54,7 +54,7 @@ function formatLog({
   timestamp,
 }: ILogFormatInput) {
   return [new Date(timestamp).toISOString(), tag, label, message.trim()]
-    .filter(item => !!item)
+    .filter((item) => !!item)
     .concat(
       context || Object.keys(defaultContext).length
         ? JSON.stringify({ ...defaultContext, ...context })

@@ -163,7 +163,7 @@ describe('lesslog', () => {
 
     it.each(['1', 'on', 'true', 'yes'])(
       "writes a debug log directly if `DEBUG` is '%s'",
-      debug => {
+      (debug) => {
         const label = 'DEBUG'
         const message = 'Random debug log message'
         const context = { key: 'value' }

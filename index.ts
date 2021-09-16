@@ -7,16 +7,16 @@ enum LogLevel {
   ERROR,
 }
 
-interface ILogContext {
+export interface ILogContext {
   [key: string]: any
 }
 
-interface ILogDefaults {
+export interface ILogDefaults {
   context: ILogContext
   tag?: string
 }
 
-interface ILogFormatInput {
+export interface ILogFormatInput {
   context?: ILogContext
   defaults: ILogDefaults
   label: string
@@ -24,11 +24,11 @@ interface ILogFormatInput {
   timestamp: number
 }
 
-interface ILogFormatFunction {
+export interface ILogFormatFunction {
   (input: ILogFormatInput): string
 }
 
-interface ILogFunction {
+export interface ILogFunction {
   (message: string, context?: ILogContext): void
 }
 
@@ -135,4 +135,4 @@ log.untag = () => {
   delete defaults.tag
 }
 
-export = log
+export default log

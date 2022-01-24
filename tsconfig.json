@@ -3,7 +3,7 @@
     "alwaysStrict": true,
     "declaration": true,
     "esModuleInterop": true,
-    "lib": ["es2017"],
+    "lib": ["ESNext"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noImplicitReturns": true,
@@ -11,7 +11,7 @@
     "noUnusedParameters": true,
     "removeComments": true,
     "strict": true,
-    "target": "es2017"
+    "target": "ES5"
   },
   "files": ["index.ts"]
 }

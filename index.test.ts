@@ -1,3 +1,4 @@
+import { inspect } from 'util'
 import log from '.'
 
 describe('lesslog', () => {
@@ -103,6 +104,34 @@ describe('lesslog', () => {
         additionalInformation,
         ...context,
       })}\n`
+    )
+  })
+
+  it('falls back to using `util.inspect` if log context cannot be stringified', () => {
+    const label = 'TEST'
+    const custom = log(label)
+    const message = 'Random log message'
+    const context = { key: 'value' }
+
+    Object.assign(context, { self: context })
+
+    const additionalInformation = 42
+    log.set('additionalInformation', additionalInformation)
+
+    expect(custom(message, context)).toBeUndefined()
+
+    expect(process.stderr.write).not.toHaveBeenCalled()
+
+    expect(process.stdout.write).toHaveBeenCalledTimes(1)
+    expect(process.stdout.write).toHaveBeenCalledWith(
+      `${datetime}\t${label}\t${message}\t${inspect(
+        {
+          additionalInformation,
+          ...context,
+        },
+        true,
+        null
+      )}\n`
     )
   })
 

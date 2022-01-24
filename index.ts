@@ -1,4 +1,5 @@
 import { PassThrough } from 'stream'
+import { inspect } from 'util'
 
 enum LogLevel {
   DEBUG,
@@ -46,6 +47,14 @@ function clearLog() {
   }
 }
 
+function formatLogContext(context: ILogContext) {
+  try {
+    return JSON.stringify(context)
+  } catch (error) {
+    return inspect(context, true, null)
+  }
+}
+
 function formatLog({
   context,
   defaults: { context: defaultContext, tag },
@@ -57,7 +66,7 @@ function formatLog({
     .filter((item) => !!item)
     .concat(
       context || Object.keys(defaultContext).length
-        ? JSON.stringify({ ...defaultContext, ...context })
+        ? formatLogContext({ ...defaultContext, ...context })
         : []
     )
     .join('\t')

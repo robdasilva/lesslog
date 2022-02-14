@@ -129,8 +129,12 @@ describe('lesslog', () => {
           additionalInformation,
           ...context,
         },
-        true,
-        null
+        {
+          breakLength: Infinity,
+          compact: 1,
+          depth: null,
+          showHidden: true,
+        }
       )}\n`
     )
   })

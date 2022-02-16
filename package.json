@@ -1,6 +1,6 @@
 {
   "name": "lesslog",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Zero-dependency, teeny-tiny and serverless-ready logging utility for Node.js.",
   "main": "index.js",
   "types": "index.d.ts",

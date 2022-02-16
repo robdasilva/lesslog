@@ -51,12 +51,7 @@ function formatLogContext(context: ILogContext) {
   try {
     return JSON.stringify(context)
   } catch (error) {
-    return inspect(context, {
-      breakLength: Infinity,
-      compact: 1,
-      depth: null,
-      showHidden: true,
-    })
+    return inspect(context, { compact: 1 })
   }
 }
 

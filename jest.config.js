@@ -1,6 +1,6 @@
 module.exports = {
   collectCoverage: false,
-  collectCoverageFrom: ['index.ts'],
+  collectCoverageFrom: ["index.ts"],
   coverageThreshold: {
     global: {
       branches: 100,
@@ -9,10 +9,10 @@ module.exports = {
       statements: 100,
     },
   },
-  moduleDirectories: ['node_modules'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  testEnvironment: 'node',
-  testPathIgnorePatterns: ['/node_modules/'],
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.[jt]sx?$',
-  transform: { '^.+\\.tsx?$': 'ts-jest' },
-}
+  moduleDirectories: ["node_modules"],
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
+  testEnvironment: "node",
+  testPathIgnorePatterns: ["/node_modules/"],
+  testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.[jt]sx?$",
+  transform: { "^.+\\.tsx?$": "ts-jest" },
+};

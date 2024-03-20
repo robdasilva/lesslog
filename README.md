@@ -19,17 +19,17 @@ $ npm install lesslog
 ## Usage
 
 ```javascript
-import { clear, debug, info, warn, error, tag } from 'lesslog'
+import { clear, debug, info, warn, error, tag } from "lesslog";
 
-tag('70e505ba-ad84-4816-82ec-f2a1ed4303ca')
+tag("70e505ba-ad84-4816-82ec-f2a1ed4303ca");
 
-debug('Debug message', { with: 'additional', information: true })
-info('Uncritical exceptional information', ['maybe', 'an', 'array', '?'])
-warn('Potentially critical warning', { tokenExpired: true, user: { id: 42 } })
-error('‾\\_(ツ)_/‾', { error: { message: error.message }, user: { id: 42 } })
+debug("Debug message", { with: "additional", information: true });
+info("Uncritical exceptional information", ["maybe", "an", "array", "?"]);
+warn("Potentially critical warning", { tokenExpired: true, user: { id: 42 } });
+error("‾\\_(ツ)_/‾", { error: { message: error.message }, user: { id: 42 } });
 
-debug('Yet another debug message')
-clear()
+debug("Yet another debug message");
+clear();
 ```
 
 Running the above code, will result in the following log messages:
@@ -94,20 +94,20 @@ Clears the entire default context and removes any previously set tag.
 ### Advanced Usage
 
 ```javascript
-import log from 'lesslog'
+import log from "lesslog";
 
-const label = 'MONITORING'
+const label = "MONITORING";
 
 function format(timestamp, label, message, context) {
-  const metrics = [message, ...context].join('|')
-  return `${new Date(timestamp).toISOString()}\t${label}\t${metrics}`
+  const metrics = [message, ...context].join("|");
+  return `${new Date(timestamp).toISOString()}\t${label}\t${metrics}`;
 }
 
-const logMetrics = log(label, format)
+const logMetrics = log(label, format);
 
-log.tag('14968fcb-6481-46d8-a068-b97d4be47852')
+log.tag("14968fcb-6481-46d8-a068-b97d4be47852");
 
-logMetrics('DBQueryMetrics', [42, 0.618, 'readreplica'])
+logMetrics("DBQueryMetrics", [42, 0.618, "readreplica"]);
 ```
 
 Running the above code, will result in the following log messages:

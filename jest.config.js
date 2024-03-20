@@ -1,6 +1,5 @@
-module.exports = {
-  collectCoverage: false,
-  collectCoverageFrom: ["index.ts"],
+/** @type {import('jest').Config} */
+const config = {
   coverageThreshold: {
     global: {
       branches: 100,
@@ -9,10 +8,8 @@ module.exports = {
       statements: 100,
     },
   },
-  moduleDirectories: ["node_modules"],
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
-  testEnvironment: "node",
-  testPathIgnorePatterns: ["/node_modules/"],
-  testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.[jt]sx?$",
-  transform: { "^.+\\.tsx?$": "ts-jest" },
+  preset: "ts-jest",
+  resetMocks: true,
 };
+
+export default config;

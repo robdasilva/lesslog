@@ -6,7 +6,6 @@ describe("lesslog", () => {
   const timestamp = 2147483648000;
 
   beforeAll(() => {
-    jest.spyOn(Date, "now").mockReturnValue(timestamp);
     jest.spyOn(process.stderr, "write").mockImplementation();
     jest.spyOn(process.stdout, "write").mockImplementation();
   });
@@ -15,6 +14,10 @@ describe("lesslog", () => {
     (Date.now as jest.Mock).mockRestore();
     (process.stderr.write as jest.Mock).mockRestore();
     (process.stdout.write as jest.Mock).mockRestore();
+  });
+
+  beforeEach(() => {
+    jest.spyOn(Date, "now").mockReturnValue(timestamp);
   });
 
   afterEach(() => {

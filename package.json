@@ -2,27 +2,9 @@
   "name": "lesslog",
   "version": "0.2.7",
   "description": "Zero-dependency, teeny-tiny and serverless-ready logging utility for Node.js.",
-  "main": "index.js",
-  "types": "index.d.ts",
-  "files": [
-    "index.d.ts",
-    "index.js",
-    "LICENSE",
-    "package.json",
-    "README.md"
-  ],
-  "scripts": {
-    "build": "tsc && prettier --write index.d.ts index.js",
-    "lint": "eslint . --ext .js,.ts --ignore-path .gitignore",
-    "prepare": "husky install && npm run lint && npm run test && npm run build",
-    "preversion": "npm run lint && npm run test",
-    "postversion": "git push && git push --tags",
-    "test": "jest"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/robdasilva/lesslog.git"
-  },
+  "author": "Robert Da Silva <mail@robdasilva.com> (https://robdasilva.com)",
+  "homepage": "https://github.com/robdasilva/lesslog#readme",
+  "license": "MIT",
   "keywords": [
     "aws",
     "cloudwatch",
@@ -36,12 +18,34 @@
     "monitoring",
     "serverless"
   ],
-  "author": "Robert Da Silva <mail@robdasilva.com> (https://robdasilva.com)",
-  "license": "MIT",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.d.ts",
+    "index.js",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc && prettier --write index.d.ts index.js",
+    "lint": "eslint . --ext .js,.ts --ignore-path .gitignore",
+    "prepare": "husky install && pnpm run lint && pnpm run test && pnpm run build",
+    "preversion": "pnpm run lint && npm prun test",
+    "postversion": "git push && git push --tags",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robdasilva/lesslog.git"
+  },
   "bugs": {
     "url": "https://github.com/robdasilva/lesslog/issues"
   },
-  "homepage": "https://github.com/robdasilva/lesslog#readme",
+  "engines": {
+    "node": ">=16"
+  },
+  "packageManager": "pnpm@8.15.5+sha256.4b4efa12490e5055d59b9b9fc9438b7d581a6b7af3b5675eb5c5f447cee1a589",
   "devDependencies": {
     "@types/jest": "^27.4.0",
     "@types/node": "^16.11.25",

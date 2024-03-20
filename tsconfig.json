@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
-    "alwaysStrict": true,
-    "declaration": true,
-    "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
     "lib": ["ESNext"],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "node16",
+    "noEmit": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "removeComments": true,
-    "strict": true,
-    "target": "ES5"
+    "strict": true
   },
   "files": ["index.ts"]
 }

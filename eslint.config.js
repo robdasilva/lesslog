@@ -8,7 +8,7 @@ const config = ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
   eslintConfigPrettier,
-  { ignores: ["coverage", "node_modules"] },
+  { ignores: ["coverage", "dist", "node_modules"] },
   {
     files: ["**/*.test.*"],
     ...jest.configs["flat/recommended"],

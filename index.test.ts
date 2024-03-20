@@ -1,5 +1,5 @@
 import { inspect } from "util";
-import log from ".";
+import log from "./index.ts";
 
 describe("lesslog", () => {
   const datetime = "2038-01-19T03:14:08.000Z";

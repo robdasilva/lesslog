@@ -1,0 +1,12 @@
+pre-commit:
+  parallel: false
+  commands:
+    format:
+      glob: "*.{js,json,md,ts,yaml,yml}"
+      run: pnpm format {staged_files} && git add {staged_files}
+    lint:
+      glob: "*.{js,ts}"
+      run: pnpm lint {staged_files} && git add {staged_files}
+    test:
+      glob: "*.(spec|test).{js,ts}"
+      run: pnpm test {staged_files}

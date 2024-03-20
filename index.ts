@@ -144,4 +144,4 @@ log.untag = () => {
   delete defaults.tag;
 };
 
-export = log;
+export default log;

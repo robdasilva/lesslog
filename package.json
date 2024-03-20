@@ -18,30 +18,41 @@
     "monitoring",
     "serverless"
   ],
-  "main": "index.js",
-  "types": "index.d.ts",
+  "type": "module",
+  "exports": {
+    "import": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "require": {
+      "default": "./dist/index.cjs",
+      "types": "./dist/index.d.cts"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.cts",
   "files": [
-    "index.d.ts",
-    "index.js",
+    "dist",
     "LICENSE",
     "package.json",
     "README.md"
   ],
-  "type": "module",
   "scripts": {
-    "build": "tsc && pnpm run format index.d.ts index.js",
     "format": "prettier --write",
     "format:all": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint --fix",
     "lint:all": "eslint --fix .",
     "lint:check": "eslint .",
-    "prepare": "lefthook install && pnpm run preversion && pnpm run build",
-    "preversion": "pnpm run lint:all && pnpm run test:all",
+    "postpublish": "rm -rf dist",
     "postversion": "git push && git push --tags",
+    "prepack": "pnpm run postpublish && tsup index.ts --dts --format cjs,esm",
+    "prepare": "lefthook install",
+    "preversion": "pnpm run lint:all && pnpm run test:all",
     "test": "jest --bail --find-related-tests",
     "test:all": "jest --pass-with-no-tests",
-    "test:ci": "jest --ci --coverage --pass-with-no-tests"
+    "test:ci": "jest --ci --coverage --pass-with-no-tests",
+    "types:check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -64,6 +75,7 @@
     "lefthook": "^1.6.7",
     "prettier": "^3.2.5",
     "ts-jest": "^29.1.2",
+    "tsup": "^8.0.2",
     "typescript": "^5.4.3",
     "typescript-eslint": "^7.3.1"
   }

@@ -145,7 +145,7 @@ describe("lesslog", () => {
   it("throws type error if `message` is not a string", () => {
     const label = "MONITORING";
     const monitor = log(label);
-    const message = Symbol("message") as any as string;
+    const message = Symbol("message") as unknown as string;
 
     expect(() => monitor(message)).toThrowErrorMatchingInlineSnapshot(
       `"Expected \`message\` to be a string"`,
@@ -326,7 +326,7 @@ describe("lesslog", () => {
     });
 
     it("throws type error if `message` is not a string", () => {
-      const tag = Symbol("tag") as any as string;
+      const tag = Symbol("tag") as unknown as string;
 
       expect(() => log.tag(tag)).toThrowErrorMatchingInlineSnapshot(
         `"Expected \`tag\` to be a string"`,

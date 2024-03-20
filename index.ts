@@ -9,7 +9,7 @@ enum LogLevel {
 }
 
 interface ILogContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ILogDefaults {

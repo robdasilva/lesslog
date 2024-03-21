@@ -1,96 +1,114 @@
 import { PassThrough } from "stream";
 import { inspect } from "util";
 
-enum LogLevel {
+export enum LogLevel {
   DEBUG,
   INFO,
   WARN,
   ERROR,
 }
 
-interface ILogContext {
-  [key: string]: unknown;
-}
+export type LogContext = Record<string, unknown> | null;
 
-interface ILogDefaults {
-  context: ILogContext;
-  tag?: string;
-}
-
-interface ILogFormatInput {
-  context?: ILogContext;
-  defaults: ILogDefaults;
+export interface ILogEntry {
+  context: LogContext;
   label: string;
+  level: LogLevel;
   message: string;
   timestamp: number;
 }
 
-interface ILogFormatFunction {
-  (input: ILogFormatInput): string;
-}
+export type LogFormatFunction = (input: ILogEntry) => string;
 
-interface ILogFunction {
-  (message: string, context?: ILogContext): void;
-}
-
-const defaults: ILogDefaults = { context: {} };
-
-const logStream = new PassThrough();
-
-function bufferLog() {
-  return logStream.readable && logStream.readableLength;
-}
-
-function clearLog() {
-  if (bufferLog()) {
-    return logStream.read(logStream.readableLength);
-  }
-}
-
-function formatLogContext(context: ILogContext) {
+function formatLogContext(context: NonNullable<LogContext>) {
   try {
     return JSON.stringify(context);
   } catch (error) {
-    return inspect(context, { compact: 1 });
+    return inspect(context, { compact: 1, sorted: true });
   }
 }
 
-function formatLog({
-  context,
-  defaults: { context: defaultContext, tag },
-  label,
-  message,
-  timestamp,
-}: ILogFormatInput) {
-  return [new Date(timestamp).toISOString(), tag, label, message.trim()]
+function formatLog({ context, label, level, message, timestamp }: ILogEntry) {
+  return [
+    new Date(timestamp).toISOString(),
+    label,
+    LogLevel[level],
+    message.trim(),
+    context && formatLogContext(context),
+  ]
     .filter((item) => !!item)
-    .concat(
-      context || Object.keys(defaultContext).length
-        ? formatLogContext({ ...defaultContext, ...context })
-        : [],
-    )
     .join("\t");
 }
 
-function log(
-  level: LogLevel | string,
-  format: ILogFormatFunction = formatLog,
-): ILogFunction {
-  return (message: string, context?: ILogContext) => {
+export class Log {
+  private readonly logStream = new PassThrough();
+  private readonly format: LogFormatFunction;
+
+  private _context: LogContext = null;
+  private _label: string = "";
+
+  constructor(format: LogFormatFunction = formatLog) {
+    if (typeof format !== "function") {
+      throw new TypeError("Expected `format` to be a function");
+    }
+
+    this.format = format;
+  }
+
+  get context() {
+    return this._context;
+  }
+
+  set context(context: LogContext) {
+    if (typeof context !== "object") {
+      throw new TypeError("Expected `context` to be an object");
+    }
+
+    this._context = context;
+  }
+
+  get label() {
+    return this._label;
+  }
+
+  set label(label: string) {
+    if (typeof label !== "string") {
+      throw new TypeError("Expected `label` to be a string");
+    }
+
+    this._label = label.trim();
+  }
+
+  clear() {
+    this.logStream.read();
+  }
+
+  flush() {
+    if (this.logStream.readable && this.logStream.readableLength > 0) {
+      process.stdout.write(this.logStream.read(this.logStream.readableLength));
+    }
+  }
+
+  private writeLog(level: LogLevel, message: string, context?: LogContext) {
     if (typeof message !== "string") {
       throw new TypeError("Expected `message` to be a string");
     }
 
-    const label = typeof level === "string" ? level.trim() : LogLevel[level];
     const entry =
-      format({ context, defaults, label, message, timestamp: Date.now() }) +
-      "\n";
+      this.format({
+        context:
+          !!context || (this._context && Object.keys(this._context).length)
+            ? { ...this.context, ...context }
+            : null,
+        label: this._label,
+        level,
+        message,
+        timestamp: Date.now(),
+      }) + "\n";
 
     switch (level) {
       case LogLevel.ERROR:
-        if (bufferLog()) {
-          process.stdout.write(clearLog());
-        }
+        this.flush();
       // eslint-disable-next-line no-fallthrough
       case LogLevel.WARN:
         process.stderr.write(entry);
@@ -103,45 +121,30 @@ function log(
             process.env.DEBUG.toLowerCase() !== "true" &&
             process.env.DEBUG.toLowerCase() !== "yes")
         ) {
-          logStream.write(entry);
+          this.logStream.write(entry);
           break;
         }
       // eslint-disable-next-line no-fallthrough
       default:
         process.stdout.write(entry);
     }
-  };
-}
-
-log.clear = clearLog;
-log.debug = log(LogLevel.DEBUG);
-log.info = log(LogLevel.INFO);
-log.warn = log(LogLevel.WARN);
-log.error = log(LogLevel.ERROR);
-
-log.reset = () => {
-  defaults.context = {};
-  log.untag();
-};
-
-log.set = (name: string, value: string | number | boolean | null) => {
-  defaults.context[name] = value;
-};
-
-log.tag = (tag: string) => {
-  if (typeof tag !== "string") {
-    throw new TypeError("Expected `tag` to be a string");
   }
 
-  defaults.tag = tag.trim();
-};
+  debug(message: string, context?: LogContext) {
+    this.writeLog(LogLevel.DEBUG, message, context);
+  }
 
-log.unset = (name: string) => {
-  delete defaults.context[name];
-};
+  info(message: string, context?: LogContext) {
+    this.writeLog(LogLevel.INFO, message, context);
+  }
 
-log.untag = () => {
-  delete defaults.tag;
-};
+  warn(message: string, context?: LogContext) {
+    this.writeLog(LogLevel.WARN, message, context);
+  }
 
-export default log;
+  error(message: string, context?: LogContext) {
+    this.writeLog(LogLevel.ERROR, message, context);
+  }
+}
+
+export default new Log();

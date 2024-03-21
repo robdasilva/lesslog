@@ -1,5 +1,5 @@
 import { inspect } from "util";
-import log from "./index.ts";
+import lesslog, { Log, LogFormatFunction, LogLevel } from "./index.ts";
 
 describe("lesslog", () => {
   const datetime = "2038-01-19T03:14:08.000Z";
@@ -11,439 +11,375 @@ describe("lesslog", () => {
   });
 
   afterAll(() => {
-    (Date.now as jest.Mock).mockRestore();
-    (process.stderr.write as jest.Mock).mockRestore();
-    (process.stdout.write as jest.Mock).mockRestore();
+    jest.restoreAllMocks();
   });
 
   beforeEach(() => {
     jest.spyOn(Date, "now").mockReturnValue(timestamp);
   });
 
-  afterEach(() => {
-    (Date.now as jest.Mock).mockClear();
-    (process.stderr.write as jest.Mock).mockClear();
-    (process.stdout.write as jest.Mock).mockClear();
+  describe("constructor", () => {
+    it("creates a new instance of `Log` with the default format function", () => {
+      const log = new Log();
 
-    log.clear();
-    log.reset();
-  });
-
-  it("creates a custom logging function for a given log level", () => {
-    const label = "TEST";
-    const custom = log(label);
-    const message = "Random log message";
-    const context = { key: "value" };
-
-    expect(custom(message, context)).toBeUndefined();
-
-    expect(process.stderr.write).not.toHaveBeenCalled();
-
-    expect(process.stdout.write).toHaveBeenCalledTimes(1);
-    expect(process.stdout.write).toHaveBeenCalledWith(
-      `${datetime}\t${label}\t${message}\t${JSON.stringify(context)}\n`,
-    );
-  });
-
-  it("creates a custom logging function with custom formatting", () => {
-    const label = "TEST";
-    const string = "Formatted log message";
-    const format = jest.fn(() => string);
-    const monitor = log(label, format);
-    const message = "Random log message";
-    const context = { key: "value" };
-
-    expect(monitor(message, context)).toBeUndefined();
-
-    expect(format).toHaveBeenCalledTimes(1);
-    expect(format).toHaveBeenCalledWith({
-      context,
-      defaults: { context: {} },
-      label,
-      message,
-      timestamp,
+      expect(log).toBeInstanceOf(Log);
     });
 
-    expect(process.stderr.write).not.toHaveBeenCalled();
+    it("creates a new instance of `Log` with a custom format function", () => {
+      const defaultContext = { defaultKey: "defaultValue" };
+      const label = "Random log label";
 
-    expect(process.stdout.write).toHaveBeenCalledTimes(1);
-    expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`);
-  });
-
-  it("adds a custom tag to the log message if specified", () => {
-    const label = "TEST";
-    const custom = log(label);
-    const message = "Random log message";
-
-    const tag = "45bab467-087c-426c-be7b-a2a1ce1f3f05";
-    log.tag(tag);
-
-    expect(custom(message)).toBeUndefined();
-
-    expect(process.stderr.write).not.toHaveBeenCalled();
-
-    expect(process.stdout.write).toHaveBeenCalledTimes(1);
-    expect(process.stdout.write).toHaveBeenCalledWith(
-      `${datetime}\t${tag}\t${label}\t${message}\n`,
-    );
-  });
-
-  it("merges log context and default context if specified", () => {
-    const label = "TEST";
-    const custom = log(label);
-    const message = "Random log message";
-    const context = { key: "value" };
-
-    const additionalInformation = 42;
-    log.set("additionalInformation", additionalInformation);
-
-    expect(custom(message, context)).toBeUndefined();
-
-    expect(process.stderr.write).not.toHaveBeenCalled();
-
-    expect(process.stdout.write).toHaveBeenCalledTimes(1);
-    expect(process.stdout.write).toHaveBeenCalledWith(
-      `${datetime}\t${label}\t${message}\t${JSON.stringify({
-        additionalInformation,
-        ...context,
-      })}\n`,
-    );
-  });
-
-  it("falls back to using `util.inspect` if log context cannot be stringified", () => {
-    const label = "TEST";
-    const custom = log(label);
-    const message = "Random log message";
-    const context = { key: "value" };
-
-    Object.assign(context, { self: context });
-
-    const additionalInformation = 42;
-    log.set("additionalInformation", additionalInformation);
-
-    expect(custom(message, context)).toBeUndefined();
-
-    expect(process.stderr.write).not.toHaveBeenCalled();
-
-    expect(process.stdout.write).toHaveBeenCalledTimes(1);
-    expect(process.stdout.write).toHaveBeenCalledWith(
-      `${datetime}\t${label}\t${message}\t${inspect(
-        {
-          additionalInformation,
-          ...context,
-        },
-        {
-          breakLength: Infinity,
-          compact: 1,
-          depth: null,
-          showHidden: true,
-        },
-      )}\n`,
-    );
-  });
-
-  it("throws type error if `message` is not a string", () => {
-    const label = "MONITORING";
-    const monitor = log(label);
-    const message = Symbol("message") as unknown as string;
-
-    expect(() => monitor(message)).toThrowErrorMatchingInlineSnapshot(
-      `"Expected \`message\` to be a string"`,
-    );
-
-    expect(process.stderr.write).not.toHaveBeenCalled();
-
-    expect(process.stdout.write).not.toHaveBeenCalled();
-  });
-
-  describe("clear", () => {
-    it("returns any debug logs clearing them from the buffer", () => {
-      const label = "DEBUG";
-      const messages = ["Random log message", "Another log message"];
-
-      log.debug(messages[0]);
-      log.debug(messages[1]);
-
-      expect(log.clear()).toStrictEqual(
-        Buffer.from(
-          `${datetime}\t${label}\t${messages[0]}\n` +
-            `${datetime}\t${label}\t${messages[1]}\n`,
-          "utf8",
-        ),
-      );
-    });
-
-    it("returns `undefined` on empty buffer", () => {
-      expect(log.clear()).toBeUndefined();
-    });
-  });
-
-  describe("debug", () => {
-    it("writes a debug log to the buffer formatting any given context", () => {
-      const label = "DEBUG";
       const message = "Random debug log message";
       const context = { key: "value" };
 
-      log.debug(message, context);
+      const entry = "Formatted log entry";
+      const format = jest.fn().mockReturnValueOnce(entry);
+
+      const log = new Log(format);
+      log.context = defaultContext;
+      log.label = label;
+
+      expect(log.info(message, context)).toBeUndefined();
+
+      expect(format).toHaveBeenCalledTimes(1);
+      expect(format).toHaveBeenCalledWith({
+        context: { defaultKey: "defaultValue", key: "value" },
+        label,
+        level: LogLevel.INFO,
+        message,
+        timestamp,
+      });
 
       expect(process.stderr.write).not.toHaveBeenCalled();
-      expect(process.stdout.write).not.toHaveBeenCalled();
 
-      expect(log.clear()).toStrictEqual(
-        Buffer.from(
-          `${datetime}\t${label}\t${message}\t${JSON.stringify(context)}\n`,
-          "utf8",
-        ),
-      );
+      expect(process.stdout.write).toHaveBeenCalledTimes(1);
+      expect(process.stdout.write).toHaveBeenCalledWith(`${entry}\n`);
     });
 
-    it.each(["1", "on", "true", "yes"])(
-      "writes a debug log directly if `DEBUG` is '%s'",
-      (debug) => {
-        const label = "DEBUG";
-        const message = "Random debug log message";
-        const context = { key: "value" };
+    it("throws type error if `format` is not a function", () => {
+      expect(() => new Log("format" as unknown as LogFormatFunction)).toThrow(
+        "Expected `format` to be a function",
+      );
+    });
+  });
 
-        process.env.DEBUG = debug;
+  describe.each(["default", "custom"])(`using %s logger`, (useLogger) => {
+    const log = useLogger === "custom" ? new Log() : lesslog;
 
-        log.debug(message, context);
+    describe("clear", () => {
+      it("removes any buffered debug logs", () => {
+        const messages = ["Random log message", "Another log message"];
 
-        delete process.env.DEBUG;
+        expect(log.debug(messages[0])).toBeUndefined();
+        expect(log.debug(messages[1])).toBeUndefined();
+
+        expect(log.clear()).toBeUndefined();
+
+        expect(log.flush()).toBeUndefined();
+
+        expect(process.stderr.write).not.toHaveBeenCalled();
+        expect(process.stdout.write).not.toHaveBeenCalled();
+      });
+
+      it("returns `undefined` on empty buffer", () => {
+        expect(log.clear()).toBeUndefined();
+
+        expect(log.flush()).toBeUndefined();
+
+        expect(process.stderr.write).not.toHaveBeenCalled();
+        expect(process.stdout.write).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("flush", () => {
+      it("writes any buffered debug logs to stdout", () => {
+        const level = LogLevel[LogLevel.DEBUG];
+        const messages = ["Random log message", "Another log message"];
+
+        expect(log.debug(messages[0])).toBeUndefined();
+        expect(log.debug(messages[1])).toBeUndefined();
+
+        expect(log.flush()).toBeUndefined();
 
         expect(process.stderr.write).not.toHaveBeenCalled();
 
         expect(process.stdout.write).toHaveBeenCalledTimes(1);
         expect(process.stdout.write).toHaveBeenCalledWith(
-          `${datetime}\t${label}\t${message}\t${JSON.stringify(context)}\n`,
+          Buffer.from(
+            `${datetime}\t${level}\t${messages[0]}\n` +
+              `${datetime}\t${level}\t${messages[1]}\n`,
+            "utf8",
+          ),
         );
-      },
-    );
-  });
-
-  describe("info", () => {
-    it("writes an info log formatting any given context", () => {
-      const label = "INFO";
-      const message = "Random info log message";
-      const context = { key: "value" };
-
-      log.info(message, context);
-
-      expect(process.stderr.write).not.toHaveBeenCalled();
-
-      expect(process.stdout.write).toHaveBeenCalledTimes(1);
-      expect(process.stdout.write).toHaveBeenCalledWith(
-        `${datetime}\t${label}\t${message}\t${JSON.stringify(context)}\n`,
-      );
-    });
-  });
-
-  describe("warn", () => {
-    it("writes a warning log formatting any given context", () => {
-      const label = "WARN";
-      const message = "Random warning log message";
-      const context = { key: "value" };
-
-      log.warn(message, context);
-
-      expect(process.stderr.write).toHaveBeenCalledTimes(1);
-      expect(process.stderr.write).toHaveBeenCalledWith(
-        `${datetime}\t${label}\t${message}\t${JSON.stringify(context)}\n`,
-      );
-
-      expect(process.stdout.write).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("error", () => {
-    it("writes an error log formatting any given context", () => {
-      const label = "ERROR";
-      const message = "Random error log message";
-      const context = { key: "value" };
-
-      log.error(message, context);
-
-      expect(process.stderr.write).toHaveBeenCalledTimes(1);
-      expect(process.stderr.write).toHaveBeenCalledWith(
-        `${datetime}\t${label}\t${message}\t${JSON.stringify(context)}\n`,
-      );
-
-      expect(process.stdout.write).not.toHaveBeenCalled();
-    });
-
-    it("writes any buffered logs before the actual error log", () => {
-      const labels = ["DEBUG", "DEBUG", "ERROR"];
-      const messages = [
-        "Random debug log message",
-        "Another debug log message",
-        "Random error log message",
-      ];
-
-      log.debug(messages[0]);
-      log.debug(messages[1]);
-      log.error(messages[2]);
-
-      expect(process.stdout.write).toHaveBeenCalledTimes(1);
-      expect(process.stdout.write).toHaveBeenCalledWith(
-        Buffer.from(
-          `${datetime}\t${labels[0]}\t${messages[0]}\n` +
-            `${datetime}\t${labels[1]}\t${messages[1]}\n`,
-          "utf8",
-        ),
-      );
-
-      expect(process.stderr.write).toHaveBeenCalledTimes(1);
-      expect(process.stderr.write).toHaveBeenCalledWith(
-        `${datetime}\t${labels[2]}\t${messages[2]}\n`,
-      );
-    });
-  });
-
-  describe("tag", () => {
-    it("sets a tag to be added to any log messages", () => {
-      const label = "TEST";
-      const string = "Formatted log entry";
-      const format = jest.fn(() => string);
-      const custom = log(label, format);
-      const message = "Random log message";
-
-      const tag = "42e65f33-9eae-40ae-90c1-904a2050979f";
-      log.tag(tag);
-
-      expect(custom(message)).toBeUndefined();
-
-      expect(format).toHaveBeenCalledTimes(1);
-      expect(format).toHaveBeenCalledWith({
-        defaults: { context: {}, tag },
-        label,
-        message,
-        timestamp,
       });
 
-      expect(process.stderr.write).not.toHaveBeenCalled();
+      it("does not write to stdout if there are no buffered debug logs", () => {
+        expect(log.flush()).toBeUndefined();
 
-      expect(process.stdout.write).toHaveBeenCalledTimes(1);
-      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`);
+        expect(process.stderr.write).not.toHaveBeenCalled();
+        expect(process.stdout.write).not.toHaveBeenCalled();
+      });
     });
 
-    it("throws type error if `message` is not a string", () => {
-      const tag = Symbol("tag") as unknown as string;
+    describe("debug", () => {
+      it("writes a debug log to the buffer formatting any given context", () => {
+        const level = LogLevel[LogLevel.DEBUG];
+        const message = "Random debug log message";
+        const context = { key: "value" };
 
-      expect(() => log.tag(tag)).toThrowErrorMatchingInlineSnapshot(
-        `"Expected \`tag\` to be a string"`,
+        expect(log.debug(message, context)).toBeUndefined();
+
+        expect(process.stderr.write).not.toHaveBeenCalled();
+        expect(process.stdout.write).not.toHaveBeenCalled();
+
+        expect(log.flush()).toBeUndefined();
+
+        expect(process.stdout.write).toHaveBeenCalledTimes(1);
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          Buffer.from(
+            `${datetime}\t${level}\t${message}\t${JSON.stringify(context)}\n`,
+            "utf8",
+          ),
+        );
+      });
+
+      it.each(["1", "on", "true", "yes"])(
+        "writes a debug log to stdout if `DEBUG` is '%s'",
+        (debug) => {
+          const level = LogLevel[LogLevel.DEBUG];
+          const message = "Random debug log message";
+          const context = { key: "value" };
+
+          process.env.DEBUG = debug;
+
+          expect(log.debug(message, context)).toBeUndefined();
+
+          delete process.env.DEBUG;
+
+          expect(process.stderr.write).not.toHaveBeenCalled();
+
+          expect(process.stdout.write).toHaveBeenCalledTimes(1);
+          expect(process.stdout.write).toHaveBeenCalledWith(
+            `${datetime}\t${level}\t${message}\t${JSON.stringify(context)}\n`,
+          );
+        },
       );
-    });
-  });
 
-  describe("untag", () => {
-    it("unsets a previously set tag to be added to any log messages", () => {
-      const label = "TEST";
-      const string = "Formatted log entry";
-      const format = jest.fn(() => string);
-      const custom = log(label, format);
-      const message = "Random log message";
+      it("falls back to using `util.inspect` if log context cannot be stringified", () => {
+        const level = LogLevel[LogLevel.DEBUG];
+        const message = "Random debug log message";
+        const context: Record<string, unknown> = { key: "value" };
 
-      log.tag("73f427cc-bb2f-4ee3-a662-afdbcaaa25b2");
-      log.untag();
+        Object.assign(context, { self: context });
 
-      expect(custom(message)).toBeUndefined();
+        context.additionalInformation = 42;
+        expect(log.debug(message, context)).toBeUndefined();
 
-      expect(format).toHaveBeenCalledTimes(1);
-      expect(format).toHaveBeenCalledWith({
-        defaults: { context: {} },
-        label,
-        message,
-        timestamp,
+        expect(process.stderr.write).not.toHaveBeenCalled();
+        expect(process.stdout.write).not.toHaveBeenCalled();
+
+        expect(log.flush()).toBeUndefined();
+
+        expect(process.stdout.write).toHaveBeenCalledTimes(1);
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          Buffer.from(
+            `${datetime}\t${level}\t${message}\t${inspect(
+              {
+                additionalInformation: 42,
+                ...context,
+              },
+              { compact: 1, sorted: true },
+            )}\n`,
+            "utf8",
+          ),
+        );
       });
 
-      expect(process.stderr.write).not.toHaveBeenCalled();
-
-      expect(process.stdout.write).toHaveBeenCalledTimes(1);
-      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`);
+      it("throws type error if `message` is not a string", () => {
+        expect(() => log.debug(null as unknown as string)).toThrow(
+          "Expected `message` to be a string",
+        );
+      });
     });
-  });
 
-  describe("set", () => {
-    it("adds a value to the default log context", () => {
-      const label = "TEST";
-      const string = "Formatted log entry";
-      const format = jest.fn(() => string);
-      const custom = log(label, format);
-      const message = "Random log message";
+    describe("info", () => {
+      it("writes an info log to stdout formatting any given context", () => {
+        const level = LogLevel[LogLevel.INFO];
+        const message = "Random info log message";
+        const context = { key: "value" };
 
-      const additionalInformation = 42;
-      log.set("additionalInformation", additionalInformation);
+        expect(log.info(message, context)).toBeUndefined();
 
-      expect(custom(message)).toBeUndefined();
+        expect(process.stderr.write).not.toHaveBeenCalled();
 
-      expect(format).toHaveBeenCalledTimes(1);
-      expect(format).toHaveBeenCalledWith({
-        defaults: { context: { additionalInformation } },
-        label,
-        message,
-        timestamp,
+        expect(process.stdout.write).toHaveBeenCalledTimes(1);
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          `${datetime}\t${level}\t${message}\t${JSON.stringify(context)}\n`,
+        );
       });
 
-      expect(process.stderr.write).not.toHaveBeenCalled();
-
-      expect(process.stdout.write).toHaveBeenCalledTimes(1);
-      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`);
+      it("throws type error if `message` is not a string", () => {
+        expect(() => log.info(null as unknown as string)).toThrow(
+          "Expected `message` to be a string",
+        );
+      });
     });
-  });
 
-  describe("unset", () => {
-    it("removes a value from the default log context", () => {
-      const label = "TEST";
-      const string = "Formatted log entry";
-      const format = jest.fn(() => string);
-      const custom = log(label, format);
-      const message = "Random log message";
+    describe("warn", () => {
+      it("writes a warning log to stderr formatting any given context", () => {
+        const level = LogLevel[LogLevel.WARN];
+        const message = "Random warning log message";
+        const context = { key: "value" };
 
-      log.set("additionalInformation", 42);
-      log.unset("additionalInformation");
+        expect(log.warn(message, context)).toBeUndefined();
 
-      expect(custom(message)).toBeUndefined();
+        expect(process.stderr.write).toHaveBeenCalledTimes(1);
+        expect(process.stderr.write).toHaveBeenCalledWith(
+          `${datetime}\t${level}\t${message}\t${JSON.stringify(context)}\n`,
+        );
 
-      expect(format).toHaveBeenCalledTimes(1);
-      expect(format).toHaveBeenCalledWith({
-        defaults: { context: {} },
-        label,
-        message,
-        timestamp,
+        expect(process.stdout.write).not.toHaveBeenCalled();
       });
 
-      expect(process.stderr.write).not.toHaveBeenCalled();
-
-      expect(process.stdout.write).toHaveBeenCalledTimes(1);
-      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`);
+      it("throws type error if `message` is not a string", () => {
+        expect(() => log.warn(null as unknown as string)).toThrow(
+          "Expected `message` to be a string",
+        );
+      });
     });
-  });
 
-  describe("reset", () => {
-    it("removes any previously set tag and default context", () => {
-      const label = "TEST";
-      const string = "Formatted log entry";
-      const format = jest.fn(() => string);
-      const custom = log(label, format);
-      const message = "Random log message";
+    describe("error", () => {
+      it("writes an error log to stderr formatting any given context", () => {
+        const level = LogLevel[LogLevel.ERROR];
+        const message = "Random error log message";
+        const context = { key: "value" };
 
-      log.set("additionalInformation", 42);
-      log.tag("caa11abc-504d-404b-a518-ec23de4eea08");
-      log.reset();
+        expect(log.error(message, context)).toBeUndefined();
 
-      expect(custom(message)).toBeUndefined();
+        expect(process.stderr.write).toHaveBeenCalledTimes(1);
+        expect(process.stderr.write).toHaveBeenCalledWith(
+          `${datetime}\t${level}\t${message}\t${JSON.stringify(context)}\n`,
+        );
 
-      expect(format).toHaveBeenCalledTimes(1);
-      expect(format).toHaveBeenCalledWith({
-        defaults: { context: {} },
-        label,
-        message,
-        timestamp,
+        expect(process.stdout.write).not.toHaveBeenCalled();
       });
 
-      expect(process.stderr.write).not.toHaveBeenCalled();
+      it("writes any buffered logs to stdout before the actual error log", () => {
+        const levels = [
+          LogLevel[LogLevel.DEBUG],
+          LogLevel[LogLevel.DEBUG],
+          LogLevel[LogLevel.ERROR],
+        ];
 
-      expect(process.stdout.write).toHaveBeenCalledTimes(1);
-      expect(process.stdout.write).toHaveBeenCalledWith(`${string}\n`);
+        const messages = [
+          "Random debug log message",
+          "Another debug log message",
+          "Random error log message",
+        ];
+
+        expect(log.debug(messages[0])).toBeUndefined();
+        expect(log.debug(messages[1])).toBeUndefined();
+        expect(log.error(messages[2])).toBeUndefined();
+
+        expect(process.stdout.write).toHaveBeenCalledTimes(1);
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          Buffer.from(
+            `${datetime}\t${levels[0]}\t${messages[0]}\n` +
+              `${datetime}\t${levels[1]}\t${messages[1]}\n`,
+            "utf8",
+          ),
+        );
+
+        expect(process.stderr.write).toHaveBeenCalledTimes(1);
+        expect(process.stderr.write).toHaveBeenCalledWith(
+          `${datetime}\t${levels[2]}\t${messages[2]}\n`,
+        );
+      });
+
+      it("throws type error if `message` is not a string", () => {
+        expect(() => log.error(null as unknown as string)).toThrow(
+          "Expected `message` to be a string",
+        );
+      });
+    });
+
+    describe("context", () => {
+      it("sets the default log context", () => {
+        const defaultContext = { defaultKey: "defaultValue" };
+
+        log.context = defaultContext;
+
+        const level = LogLevel[LogLevel.INFO];
+        const message = "Random log message";
+
+        expect(log.info(message)).toBeUndefined();
+        expect(log.context).toEqual(defaultContext);
+
+        expect(process.stderr.write).not.toHaveBeenCalled();
+
+        expect(process.stdout.write).toHaveBeenCalledTimes(1);
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          `${datetime}\t${level}\t${message}\t${JSON.stringify(defaultContext)}\n`,
+        );
+      });
+
+      it("gets merged with message-level context which takes precedence", () => {
+        const defaultContext = {
+          defaultKey: "defaultValue",
+          overriddenKey: "overriddenValue",
+        };
+
+        log.context = defaultContext;
+
+        const level = LogLevel[LogLevel.INFO];
+        const message = "Random log message";
+        const context = { key: "value", overriddenKey: "newValue" };
+
+        expect(log.info(message, context)).toBeUndefined();
+        expect(log.context).toEqual(defaultContext);
+
+        expect(process.stderr.write).not.toHaveBeenCalled();
+
+        expect(process.stdout.write).toHaveBeenCalledTimes(1);
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          `${datetime}\t${level}\t${message}\t${JSON.stringify({ ...defaultContext, ...context })}\n`,
+        );
+
+        log.context = null;
+      });
+
+      it("throws type error if `context` is not an object", () => {
+        expect(() => {
+          log.context = "null" as unknown as null;
+        }).toThrow("Expected `context` to be an object");
+      });
+    });
+
+    describe("label", () => {
+      it("sets the log label", () => {
+        const label = "Random log label";
+
+        log.label = label;
+
+        const level = LogLevel[LogLevel.INFO];
+        const message = "Random log message";
+
+        expect(log.info(message)).toBeUndefined();
+        expect(log.label).toEqual(label);
+
+        expect(process.stderr.write).not.toHaveBeenCalled();
+
+        expect(process.stdout.write).toHaveBeenCalledTimes(1);
+        expect(process.stdout.write).toHaveBeenCalledWith(
+          `${datetime}\t${label}\t${level}\t${message}\n`,
+        );
+      });
+
+      it("throws type error if `label` is not a string", () => {
+        expect(() => {
+          log.label = null as unknown as string;
+        }).toThrow("Expected `label` to be a string");
+      });
     });
   });
 });

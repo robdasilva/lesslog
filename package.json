@@ -1,6 +1,6 @@
 {
   "name": "lesslog",
-  "version": "0.2.7",
+  "version": "1.0.0",
   "description": "Zero-dependency, teeny-tiny and serverless-ready logging utility for Node.js.",
   "author": "Robert Da Silva <mail@robdasilva.com> (https://robdasilva.com)",
   "homepage": "https://github.com/robdasilva/lesslog#readme",

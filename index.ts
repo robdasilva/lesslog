@@ -23,8 +23,8 @@ export type LogFormatFunction = (input: ILogEntry) => string;
 function formatLogContext(context: NonNullable<LogContext>) {
   try {
     return JSON.stringify(context);
-  } catch (error) {
-    return inspect(context, { compact: 1, sorted: true });
+  } catch (_) {
+    return `\r${inspect(context).replaceAll("\n", "\r")}`;
   }
 }
 

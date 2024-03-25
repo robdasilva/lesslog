@@ -1,4 +1,3 @@
-import { inspect } from "util";
 import lesslog, { Log, LogFormatFunction, LogLevel } from "./index.ts";
 
 describe("lesslog", () => {
@@ -168,7 +167,12 @@ describe("lesslog", () => {
       it("falls back to using `util.inspect` if log context cannot be stringified", () => {
         const level = LogLevel[LogLevel.DEBUG];
         const message = "Random debug log message";
-        const context: Record<string, unknown> = { key: "value" };
+        const context: Record<string, unknown> = {
+          key: "value",
+          otherKey: {
+            nestedKey: "nestedValue",
+          },
+        };
 
         Object.assign(context, { self: context });
 
@@ -180,16 +184,23 @@ describe("lesslog", () => {
 
         expect(log.flush()).toBeUndefined();
 
+        const expectedContext =
+          "{\r" +
+          "  key: 'value',\r" +
+          "  otherKey: { nestedKey: 'nestedValue' },\r" +
+          "  self: <ref *1> {\r" +
+          "    key: 'value',\r" +
+          "    otherKey: { nestedKey: 'nestedValue' },\r" +
+          "    self: [Circular *1],\r" +
+          "    additionalInformation: 42\r" +
+          "  },\r" +
+          "  additionalInformation: 42\r" +
+          "}";
+
         expect(process.stdout.write).toHaveBeenCalledTimes(1);
         expect(process.stdout.write).toHaveBeenCalledWith(
           Buffer.from(
-            `${datetime}\t${level}\t${message}\t${inspect(
-              {
-                additionalInformation: 42,
-                ...context,
-              },
-              { compact: 1, sorted: true },
-            )}\n`,
+            `${datetime}\t${level}\t${message}\t\r${expectedContext}\n`,
             "utf8",
           ),
         );

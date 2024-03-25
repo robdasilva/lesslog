@@ -1,6 +1,6 @@
 # lesslog
 
-**_Zero-dependency, teeny-tiny and serverless-ready logging utility for Node.js._**
+### _Zero-dependency, teeny-tiny and serverless-ready logging utility for Node.js._
 
 In most serverless environments log ingestion comes at a cost. And more often than not, those logs are not even looked at for most of the times. Until something goes bad and crucial debugging information is not available, as it was filtered to save on log ingestions.
 
@@ -9,6 +9,8 @@ Using `lesslog`, debug information is not logged immediately, but buffered inter
 ## AWS Lambda & CloudWatch
 
 `lesslog` was created with AWS Lambda in mind and its default logging format is optimized for Amazon CloudWatch. As Lambda functions are reused as much as possible, `clear` must be called at the end of each Lambda execution to prevent the internal buffers to bloat and carry over log messages from previous executions. To resemble Lambda's default log message format, `tag` must be used at the very beginning of each execution, to add the `awsRequestId` to the logs.
+
+Note: _If you use Middy, check out [`middy-lesslog`](https://github.com/robdasilva/middy-lesslog/#readme) as well!_
 
 ## Installation
 
@@ -19,17 +21,23 @@ $ npm install lesslog
 ## Usage
 
 ```javascript
-import { clear, debug, info, warn, error, tag } from "lesslog";
+import log from "lesslog";
 
-tag("70e505ba-ad84-4816-82ec-f2a1ed4303ca");
+log.label = "70e505ba-ad84-4816-82ec-f2a1ed4303ca";
 
-debug("Debug message", { with: "additional", information: true });
-info("Uncritical exceptional information", ["maybe", "an", "array", "?"]);
-warn("Potentially critical warning", { tokenExpired: true, user: { id: 42 } });
-error("‾\\_(ツ)_/‾", { error: { message: error.message }, user: { id: 42 } });
+log.debug("Debug message", { with: "additional", information: true });
+log.info("Uncritical exceptional information", ["maybe", "an", "array", "?"]);
+log.warn("Potentially critical warning", {
+  tokenExpired: true,
+  user: { id: 42 },
+});
+log.error("‾\\_(ツ)_/‾", {
+  error: { message: error.message },
+  user: { id: 42 },
+});
 
-debug("Yet another debug message");
-clear();
+log.debug("Yet another debug message");
+log.clear();
 ```
 
 Running the above code, will result in the following log messages:
@@ -41,90 +49,100 @@ Running the above code, will result in the following log messages:
 2038-01-19T03:14:08.000Z  70e505ba-ad84-4816-82ec-f2a1ed4303ca  ERROR  ‾\_(ツ)_/‾ {"error":{"message":"Original error message"},"user":{"id":42}}
 ```
 
-_Note the last debug log is not emitted as `error` is not called afterwards._
+_Note that the last debug log is not emitted, since `error` is not called afterwards._
 
 ### API
 
-#### `clear() => Buffer`
+`lesslog` exports a default `Log` instance that exposes the following methods:
 
-Clears and returns the entire internal buffer.
+#### `.clear() => void`
 
-_Must be called whenever `error` **is not** invoked and the previous debug messages can be discarded to prevent the internal buffers to bloat._
+Discards the entire internal buffer.
 
-#### `debug(message: string, context?: any) => void`
+_Must be called whenever `error` **is not** invoked and the previous debug messages can be discarded to prevent the internal buffers from bloating._
 
-Stores a log message in the internal buffers.
+#### `.flush() => void`
+
+Flushes all internally buffered logs to `process.env.stdout`.
+
+#### `.debug(message: string, context?: LogContext) => void`
+
+Stores a log message in the internal buffer with a `DEBUG` log level.
 
 _If the `DEBUG` environment variable is set to either `'1'`, `'on'`, `'true'`, or `'yes'`, the log message will not be stored and instead written to `process.env.stdout` directly._
 
-#### `info(message: string, context?: any) => void`
+#### `.info(message: string, context?: LogContext) => void`
 
-Writes a log message to `process.env.stdout`.
+Writes a log message to `process.env.stdout` with an `INFO` log level.
 
-#### `warn(message: string, context?: any) => void`
+#### `warn(message: string, context?: LogContext) => void`
 
-Writes a log message to `process.env.stderr`.
+Writes a log message to `process.env.stderr` with a `WARN` log level.
 
-#### `error(message: string, context?: any) => void`
+#### `error(message: string, context?: LogContext) => void`
 
-Writes a log message to `process.env.stderr` **after** triggering any internally buffered logs to be written to `process.env.stdout`.
+Writes a log message to `process.env.stderr` with an `ERROR` log level **after** flushing all internally buffered logs to `process.env.stdout`.
 
-#### `tag(tag: string) => void`
+#### `.context`
 
-Adds a given tag to all subsequent log messages.
+Get and set the default context for the `Log` instance.
 
-#### `untag() => void`
+The default context will be merged with the context passed to the `Log` methods above, potentially overriding properties in the default context.
 
-Removes a previously set tag and stops adding it to subsequent log messages.
+#### `.label`
 
-#### `set(name: string, value: string | number | boolean | null) => void`
-
-Sets a given name-value pair on the default context to be logged with every log message.
-
-The default context and individual log context will be merged together with defaults being overwritten by values in the individual `context` argument.
-
-#### `unset(name: string) => void`
-
-Removes a name-value pair from the default context by given name.
-
-#### `reset() => void`
-
-Clears the entire default context and removes any previously set tag.
+Get and set the log label for the `Log` instance.
 
 ### Advanced Usage
 
-```javascript
-import log from "lesslog";
+```typescript
+import { ILogEntry, Log } from "lesslog";
 
-const label = "MONITORING";
+function format({
+  context,
+  label,
+  level,
+  message,
+  timestamp,
+}: ILogEntry): string {
+  const isoString = new Date(timestamp).toISOString();
+  const metrics = [
+    message,
+    context.sumQueryCount,
+    context.avgQueryDuration,
+    context.dbClusterInstance,
+  ];
 
-function format(timestamp, label, message, context) {
-  const metrics = [message, ...context].join("|");
-  return `${new Date(timestamp).toISOString()}\t${label}\t${metrics}`;
+  return `${isoString}\t${label}\t${level}\t${metrics.join("|")}`;
 }
 
-const logMetrics = log(label, format);
+const log = new Log(format);
 
-log.tag("14968fcb-6481-46d8-a068-b97d4be47852");
+log.label = "14968fcb-6481-46d8-a068-b97d4be47852";
 
-logMetrics("DBQueryMetrics", [42, 0.618, "readreplica"]);
+log.info("DBQueryMetrics", {
+  sumQueryCount: 42,
+  avgQueryDuration: 0.618,
+  dbClusterInstance: "readreplica",
+});
 ```
 
 Running the above code, will result in the following log messages:
 
 ```shell
-2038-01-19T03:14:08.000Z  14968fcb-6481-46d8-a068-b97d4be47852  MONITORING  DBQueryMetrics|42|0.618|readreplica
+2038-01-19T03:14:08.000Z  14968fcb-6481-46d8-a068-b97d4be47852  INFO  DBQueryMetrics|42|0.618|readreplica
 ```
 
-#### `log(label: string, format?: Function) => (message: string, context?: any)`
+#### `new Log(format?: LogFormatFunction) => Log`
 
-Creates and returns a custom log function to write log message directly to `process.env.stdout`.
+Creates and returns a new log instance with a custom log formatting function.
 
-A custom formatting function can be passed as a second argument, which will always be invoked with the following arguments:
+The formatting function is invoked for every log entry with an object containing the following properties and is expected to return a string:
 
-| Argument    | Type   | Description                                        |
-| ----------- | ------ | -------------------------------------------------- |
-| `timestamp` | number | Milliseconds since 1970-01-01T00:00:00.000Z        |
-| `label`     | string | The lable used to create the custom log function   |
-| `message`   | string | Log message passed to the custom log function      |
-| `label`     | any    | Optional context passed to the custom log function |
+| Argument    | Type   | Description                                     |
+| ----------- | ------ | ----------------------------------------------- |
+| `context`   | object | The log context merged with the default context |
+| `label`     | string | The log label set on the Log instance           |
+| `level`     | string | The log level of the invoked log function       |
+| `message`   | string | Log message passed to the log function          |
+| `timestamp` | number | Milliseconds since 1970-01-01T00:00:00.000Z     |

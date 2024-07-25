@@ -8,5 +8,5 @@ pre-commit:
       glob: "*.{js,ts}"
       run: pnpm lint {staged_files} && git add {staged_files}
     test:
-      glob: "*.(spec|test).{js,ts}"
+      glob: "*.{js,ts}"
       run: pnpm test {staged_files}
